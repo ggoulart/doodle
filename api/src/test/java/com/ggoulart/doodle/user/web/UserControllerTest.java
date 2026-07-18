@@ -9,7 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.ggoulart.doodle.user.application.CreateUserCommand;
 import com.ggoulart.doodle.user.application.CreateUserUseCase;
+import com.ggoulart.doodle.user.application.DuplicateEmailException;
 import com.ggoulart.doodle.user.application.GetUserUseCase;
+import com.ggoulart.doodle.user.application.InvalidEmailException;
+import com.ggoulart.doodle.user.application.InvalidNameException;
 import com.ggoulart.doodle.user.domain.User;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,6 +52,42 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").value(created.id().toString()))
                 .andExpect(jsonPath("$.name").value("Ada Lovelace"))
                 .andExpect(jsonPath("$.email").value("ada@example.com"));
+    }
+
+    @Test
+    void createUserReturnsBadRequestWhenNameIsInvalid() throws Exception {
+        CreateUserRequest request = new CreateUserRequest("", "ada@example.com");
+        when(createUserUseCase.createUser(any(CreateUserCommand.class)))
+                .thenThrow(new InvalidNameException("name must not be empty"));
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createUserReturnsBadRequestWhenEmailIsInvalid() throws Exception {
+        CreateUserRequest request = new CreateUserRequest("Ada Lovelace", "not-an-email");
+        when(createUserUseCase.createUser(any(CreateUserCommand.class)))
+                .thenThrow(new InvalidEmailException("email is not valid: not-an-email"));
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createUserReturnsBadRequestWhenEmailAlreadyExists() throws Exception {
+        CreateUserRequest request = new CreateUserRequest("Ada Lovelace", "ada@example.com");
+        when(createUserUseCase.createUser(any(CreateUserCommand.class)))
+                .thenThrow(new DuplicateEmailException("ada@example.com"));
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

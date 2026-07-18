@@ -1,6 +1,7 @@
 package com.ggoulart.doodle.user.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,43 @@ class UserServiceTest {
         assertThat(created.email()).isEqualTo("ada@example.com");
         assertThat(created.id()).isNotNull();
         verify(createCalendarUseCase).createCalendar(created.id());
+    }
+
+    @Test
+    void createUserTrimsNameAndNormalizesEmailToLowerCase() {
+        UserService service = new UserService(userRepository, createCalendarUseCase);
+        CreateUserCommand command = new CreateUserCommand("  Ada Lovelace  ", "  Ada@Example.com  ");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User created = service.createUser(command);
+
+        assertThat(created.name()).isEqualTo("Ada Lovelace");
+        assertThat(created.email()).isEqualTo("ada@example.com");
+    }
+
+    @Test
+    void createUserThrowsWhenNameIsBlank() {
+        UserService service = new UserService(userRepository, createCalendarUseCase);
+        CreateUserCommand command = new CreateUserCommand("   ", "ada@example.com");
+
+        assertThatThrownBy(() -> service.createUser(command)).isInstanceOf(InvalidNameException.class);
+    }
+
+    @Test
+    void createUserThrowsWhenEmailIsNotValid() {
+        UserService service = new UserService(userRepository, createCalendarUseCase);
+        CreateUserCommand command = new CreateUserCommand("Ada Lovelace", "not-an-email");
+
+        assertThatThrownBy(() -> service.createUser(command)).isInstanceOf(InvalidEmailException.class);
+    }
+
+    @Test
+    void createUserThrowsWhenEmailAlreadyExistsRegardlessOfCase() {
+        UserService service = new UserService(userRepository, createCalendarUseCase);
+        CreateUserCommand command = new CreateUserCommand("Ada Lovelace", "Ada@Example.com");
+        when(userRepository.existsByEmail("ada@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createUser(command)).isInstanceOf(DuplicateEmailException.class);
     }
 
     @Test

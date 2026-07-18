@@ -58,4 +58,14 @@ class JpaUserRepositoryTest {
 
         assertThat(found).isEmpty();
     }
+
+    @Test
+    void existsByEmailDelegatesToJpaRepository() {
+        JpaUserRepository repository = new JpaUserRepository(userJpaRepository);
+        when(userJpaRepository.existsByEmail("ada@example.com")).thenReturn(true);
+
+        boolean exists = repository.existsByEmail("ada@example.com");
+
+        assertThat(exists).isTrue();
+    }
 }

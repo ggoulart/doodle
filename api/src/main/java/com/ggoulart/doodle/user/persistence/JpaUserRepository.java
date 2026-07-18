@@ -27,6 +27,11 @@ class JpaUserRepository implements UserRepository {
         return userJpaRepository.findById(id).map(this::toDomain);
     }
 
+    @Override
+    public boolean existsByEmail(String email) {
+        return userJpaRepository.existsByEmail(email);
+    }
+
     private User toDomain(UserEntity entity) {
         return new User(entity.getId(), entity.getName(), entity.getEmail());
     }
