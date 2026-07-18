@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,23 @@ class JpaSlotRepositoryTest {
         Optional<Slot> found = repository.findById(id);
 
         assertThat(found).isEmpty();
+    }
+
+    @Test
+    void findByCalendarIdAndOverlappingMapsEntitiesToDomain() {
+        JpaSlotRepository repository = new JpaSlotRepository(slotJpaRepository);
+        UUID calendarId = UUID.randomUUID();
+        Instant from = Instant.parse("2026-07-20T00:00:00Z");
+        Instant to = Instant.parse("2026-07-21T00:00:00Z");
+        SlotEntity entity = new SlotEntity(
+                UUID.randomUUID(), calendarId, Instant.parse("2026-07-20T10:00:00Z"), Instant.parse("2026-07-20T10:30:00Z"), SlotStatus.FREE);
+        when(slotJpaRepository.findByCalendarIdAndStartTimeLessThanAndEndTimeGreaterThan(calendarId, to, from))
+                .thenReturn(List.of(entity));
+
+        List<Slot> slots = repository.findByCalendarIdAndOverlapping(calendarId, from, to);
+
+        assertThat(slots).containsExactly(
+                new Slot(entity.getId(), calendarId, entity.getStartTime(), entity.getEndTime(), SlotStatus.FREE));
     }
 
     @Test

@@ -2,6 +2,8 @@ package com.ggoulart.doodle.slot.persistence;
 
 import com.ggoulart.doodle.slot.application.SlotRepository;
 import com.ggoulart.doodle.slot.domain.Slot;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -27,6 +29,14 @@ class JpaSlotRepository implements SlotRepository {
     @Override
     public Optional<Slot> findById(UUID id) {
         return slotJpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<Slot> findByCalendarIdAndOverlapping(UUID calendarId, Instant from, Instant to) {
+        return slotJpaRepository.findByCalendarIdAndStartTimeLessThanAndEndTimeGreaterThan(calendarId, to, from)
+                .stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override

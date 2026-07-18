@@ -6,11 +6,12 @@ import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
 import com.ggoulart.doodle.user.application.GetUserUseCase;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
-class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUseCase {
+class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUseCase, QuerySlotsUseCase {
 
     private final SlotRepository slotRepository;
     private final GetUserUseCase getUserUseCase;
@@ -60,5 +61,26 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
 
         Slot updated = new Slot(existing.id(), existing.calendarId(), startTime, endTime, status);
         return slotRepository.save(updated);
+    }
+
+    @Override
+    public List<Slot> querySlots(QuerySlotsCommand command) {
+        if (!command.to().isAfter(command.from())) {
+            throw new InvalidTimeRangeException("to must be after from");
+        }
+
+        UUID userId = command.userId();
+        if (getUserUseCase.getUser(userId).isEmpty()) {
+            throw new UserNotFoundException(userId);
+        }
+
+        Calendar calendar = getCalendarUseCase.getCalendarByUserId(userId)
+                .orElseThrow(() -> new CalendarNotFoundException(userId));
+
+        List<Slot> slots = slotRepository.findByCalendarIdAndOverlapping(calendar.id(), command.from(), command.to());
+        if (command.status() != null) {
+            slots = slots.stream().filter(slot -> slot.status() == command.status()).toList();
+        }
+        return slots;
     }
 }

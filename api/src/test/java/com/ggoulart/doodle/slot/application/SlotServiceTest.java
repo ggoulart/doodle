@@ -13,6 +13,7 @@ import com.ggoulart.doodle.slot.domain.SlotStatus;
 import com.ggoulart.doodle.user.application.GetUserUseCase;
 import com.ggoulart.doodle.user.domain.User;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -165,5 +166,77 @@ class SlotServiceTest {
         when(slotRepository.findById(existing.id())).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> service.updateSlot(command)).isInstanceOf(InvalidTimeRangeException.class);
+    }
+
+    @Test
+    void querySlotsReturnsOverlappingSlotsForResolvedCalendar() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        UUID userId = UUID.randomUUID();
+        Calendar calendar = new Calendar(UUID.randomUUID(), userId);
+        Instant from = Instant.parse("2026-07-20T00:00:00Z");
+        Instant to = Instant.parse("2026-07-21T00:00:00Z");
+        Slot freeSlot = new Slot(UUID.randomUUID(), calendar.id(), from, from.plusSeconds(1800), SlotStatus.FREE);
+        Slot busySlot = new Slot(UUID.randomUUID(), calendar.id(), from.plusSeconds(3600), from.plusSeconds(5400), SlotStatus.BUSY);
+        QuerySlotsCommand command = new QuerySlotsCommand(userId, from, to, null);
+
+        when(getUserUseCase.getUser(userId)).thenReturn(Optional.of(new User(userId, "Ada Lovelace", "ada@example.com")));
+        when(getCalendarUseCase.getCalendarByUserId(userId)).thenReturn(Optional.of(calendar));
+        when(slotRepository.findByCalendarIdAndOverlapping(calendar.id(), from, to)).thenReturn(List.of(freeSlot, busySlot));
+
+        List<Slot> slots = service.querySlots(command);
+
+        assertThat(slots).containsExactly(freeSlot, busySlot);
+    }
+
+    @Test
+    void querySlotsFiltersByStatusWhenProvided() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        UUID userId = UUID.randomUUID();
+        Calendar calendar = new Calendar(UUID.randomUUID(), userId);
+        Instant from = Instant.parse("2026-07-20T00:00:00Z");
+        Instant to = Instant.parse("2026-07-21T00:00:00Z");
+        Slot freeSlot = new Slot(UUID.randomUUID(), calendar.id(), from, from.plusSeconds(1800), SlotStatus.FREE);
+        Slot busySlot = new Slot(UUID.randomUUID(), calendar.id(), from.plusSeconds(3600), from.plusSeconds(5400), SlotStatus.BUSY);
+        QuerySlotsCommand command = new QuerySlotsCommand(userId, from, to, SlotStatus.FREE);
+
+        when(getUserUseCase.getUser(userId)).thenReturn(Optional.of(new User(userId, "Ada Lovelace", "ada@example.com")));
+        when(getCalendarUseCase.getCalendarByUserId(userId)).thenReturn(Optional.of(calendar));
+        when(slotRepository.findByCalendarIdAndOverlapping(calendar.id(), from, to)).thenReturn(List.of(freeSlot, busySlot));
+
+        List<Slot> slots = service.querySlots(command);
+
+        assertThat(slots).containsExactly(freeSlot);
+    }
+
+    @Test
+    void querySlotsThrowsWhenToIsNotAfterFrom() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        Instant from = Instant.parse("2026-07-20T00:00:00Z");
+        QuerySlotsCommand command = new QuerySlotsCommand(UUID.randomUUID(), from, from, null);
+
+        assertThatThrownBy(() -> service.querySlots(command)).isInstanceOf(InvalidTimeRangeException.class);
+    }
+
+    @Test
+    void querySlotsThrowsWhenUserDoesNotExist() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        UUID userId = UUID.randomUUID();
+        QuerySlotsCommand command = new QuerySlotsCommand(
+                userId, Instant.parse("2026-07-20T00:00:00Z"), Instant.parse("2026-07-21T00:00:00Z"), null);
+        when(getUserUseCase.getUser(userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.querySlots(command)).isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
+    void querySlotsThrowsWhenUserHasNoCalendar() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        UUID userId = UUID.randomUUID();
+        QuerySlotsCommand command = new QuerySlotsCommand(
+                userId, Instant.parse("2026-07-20T00:00:00Z"), Instant.parse("2026-07-21T00:00:00Z"), null);
+        when(getUserUseCase.getUser(userId)).thenReturn(Optional.of(new User(userId, "Ada Lovelace", "ada@example.com")));
+        when(getCalendarUseCase.getCalendarByUserId(userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.querySlots(command)).isInstanceOf(CalendarNotFoundException.class);
     }
 }
