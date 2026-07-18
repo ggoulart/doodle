@@ -1,0 +1,94 @@
+package com.ggoulart.doodle.meeting.web;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.ggoulart.doodle.meeting.application.BookSlotCommand;
+import com.ggoulart.doodle.meeting.application.BookSlotResult;
+import com.ggoulart.doodle.meeting.application.BookSlotUseCase;
+import com.ggoulart.doodle.meeting.application.MeetingAlreadyExistsException;
+import com.ggoulart.doodle.meeting.application.SlotNotFoundException;
+import com.ggoulart.doodle.meeting.application.SlotNotFreeException;
+import com.ggoulart.doodle.meeting.domain.Meeting;
+import com.ggoulart.doodle.slot.domain.Slot;
+import com.ggoulart.doodle.slot.domain.SlotStatus;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
+
+@WebMvcTest(MeetingController.class)
+class MeetingControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private BookSlotUseCase bookSlotUseCase;
+
+    private BookSlotRequest sampleRequest() {
+        return new BookSlotRequest("Planning", "Sprint planning", List.of("ada@example.com"));
+    }
+
+    @Test
+    void bookSlotReturnsCreatedMeetingAndUpdatedSlot() throws Exception {
+        UUID slotId = UUID.randomUUID();
+        Meeting meeting = new Meeting(UUID.randomUUID(), slotId, "Planning", "Sprint planning", List.of("ada@example.com"));
+        Slot slot = new Slot(
+                slotId, UUID.randomUUID(), Instant.parse("2026-07-20T10:00:00Z"), Instant.parse("2026-07-20T10:30:00Z"), SlotStatus.BUSY);
+        when(bookSlotUseCase.bookSlot(any(BookSlotCommand.class))).thenReturn(new BookSlotResult(meeting, slot));
+
+        mockMvc.perform(post("/slots/{id}/meetings", slotId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.meeting.title").value("Planning"))
+                .andExpect(jsonPath("$.meeting.participants[0]").value("ada@example.com"))
+                .andExpect(jsonPath("$.slot.status").value("BUSY"));
+    }
+
+    @Test
+    void bookSlotReturnsNotFoundWhenSlotDoesNotExist() throws Exception {
+        UUID slotId = UUID.randomUUID();
+        when(bookSlotUseCase.bookSlot(any(BookSlotCommand.class))).thenThrow(new SlotNotFoundException(slotId));
+
+        mockMvc.perform(post("/slots/{id}/meetings", slotId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void bookSlotReturnsConflictWhenMeetingAlreadyExists() throws Exception {
+        UUID slotId = UUID.randomUUID();
+        when(bookSlotUseCase.bookSlot(any(BookSlotCommand.class))).thenThrow(new MeetingAlreadyExistsException(slotId));
+
+        mockMvc.perform(post("/slots/{id}/meetings", slotId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void bookSlotReturnsConflictWhenSlotIsNotFree() throws Exception {
+        UUID slotId = UUID.randomUUID();
+        when(bookSlotUseCase.bookSlot(any(BookSlotCommand.class))).thenThrow(new SlotNotFreeException(slotId));
+
+        mockMvc.perform(post("/slots/{id}/meetings", slotId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isConflict());
+    }
+}

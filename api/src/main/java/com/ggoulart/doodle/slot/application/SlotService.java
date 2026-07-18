@@ -7,11 +7,12 @@ import com.ggoulart.doodle.slot.domain.SlotStatus;
 import com.ggoulart.doodle.user.application.GetUserUseCase;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
-class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUseCase, QuerySlotsUseCase {
+class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUseCase, QuerySlotsUseCase, GetSlotUseCase {
 
     private final SlotRepository slotRepository;
     private final GetUserUseCase getUserUseCase;
@@ -78,5 +79,10 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
                 .orElseThrow(() -> new CalendarNotFoundException(userId));
 
         return slotRepository.findByCalendarIdAndOverlapping(calendar.id(), command.from(), command.to(), command.status());
+    }
+
+    @Override
+    public Optional<Slot> getSlot(UUID id) {
+        return slotRepository.findById(id);
     }
 }

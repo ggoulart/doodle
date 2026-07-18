@@ -238,4 +238,20 @@ class SlotServiceTest {
 
         assertThatThrownBy(() -> service.querySlots(command)).isInstanceOf(CalendarNotFoundException.class);
     }
+
+    @Test
+    void getSlotDelegatesToRepository() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        Slot slot = new Slot(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Instant.parse("2026-07-20T10:00:00Z"),
+                Instant.parse("2026-07-20T10:30:00Z"),
+                SlotStatus.FREE);
+        when(slotRepository.findById(slot.id())).thenReturn(Optional.of(slot));
+
+        Optional<Slot> result = service.getSlot(slot.id());
+
+        assertThat(result).contains(slot);
+    }
 }
