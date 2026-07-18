@@ -4,9 +4,7 @@ import com.ggoulart.doodle.user.domain.User;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserRepository {
+public interface GetUserUseCase {
 
-    User save(User user);
-
-    Optional<User> findById(UUID id);
+    Optional<User> getUser(UUID id);
 }

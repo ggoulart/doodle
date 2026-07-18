@@ -2,13 +2,16 @@ package com.ggoulart.doodle.user.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.ggoulart.doodle.user.application.CreateUserCommand;
 import com.ggoulart.doodle.user.application.CreateUserUseCase;
+import com.ggoulart.doodle.user.application.GetUserUseCase;
 import com.ggoulart.doodle.user.domain.User;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +33,9 @@ class UserControllerTest {
     @MockitoBean
     private CreateUserUseCase createUserUseCase;
 
+    @MockitoBean
+    private GetUserUseCase getUserUseCase;
+
     @Test
     void createUserReturnsCreatedUser() throws Exception {
         CreateUserRequest request = new CreateUserRequest("Ada Lovelace", "ada@example.com");
@@ -43,5 +49,26 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").value(created.id().toString()))
                 .andExpect(jsonPath("$.name").value("Ada Lovelace"))
                 .andExpect(jsonPath("$.email").value("ada@example.com"));
+    }
+
+    @Test
+    void getUserReturnsUserWhenFound() throws Exception {
+        User user = new User(UUID.randomUUID(), "Ada Lovelace", "ada@example.com");
+        when(getUserUseCase.getUser(user.id())).thenReturn(Optional.of(user));
+
+        mockMvc.perform(get("/users/{id}", user.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(user.id().toString()))
+                .andExpect(jsonPath("$.name").value("Ada Lovelace"))
+                .andExpect(jsonPath("$.email").value("ada@example.com"));
+    }
+
+    @Test
+    void getUserReturnsNotFoundWhenMissing() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(getUserUseCase.getUser(id)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/users/{id}", id))
+                .andExpect(status().isNotFound());
     }
 }
