@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/doodle
+    username: doodle
+    password: doodle
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
