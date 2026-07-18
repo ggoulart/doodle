@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,32 @@ class JpaSlotRepositoryTest {
         assertThat(captor.getValue().getStartTime()).isEqualTo(slot.startTime());
         assertThat(captor.getValue().getEndTime()).isEqualTo(slot.endTime());
         assertThat(captor.getValue().getStatus()).isEqualTo(slot.status());
+    }
+
+    @Test
+    void findByIdMapsEntityToDomainWhenPresent() {
+        JpaSlotRepository repository = new JpaSlotRepository(slotJpaRepository);
+        UUID id = UUID.randomUUID();
+        UUID calendarId = UUID.randomUUID();
+        Instant start = Instant.parse("2026-07-20T10:00:00Z");
+        Instant end = Instant.parse("2026-07-20T10:30:00Z");
+        SlotEntity entity = new SlotEntity(id, calendarId, start, end, SlotStatus.FREE);
+        when(slotJpaRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        Optional<Slot> found = repository.findById(id);
+
+        assertThat(found).contains(new Slot(id, calendarId, start, end, SlotStatus.FREE));
+    }
+
+    @Test
+    void findByIdReturnsEmptyWhenMissing() {
+        JpaSlotRepository repository = new JpaSlotRepository(slotJpaRepository);
+        UUID id = UUID.randomUUID();
+        when(slotJpaRepository.findById(id)).thenReturn(Optional.empty());
+
+        Optional<Slot> found = repository.findById(id);
+
+        assertThat(found).isEmpty();
     }
 
     @Test

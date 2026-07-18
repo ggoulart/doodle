@@ -3,12 +3,14 @@ package com.ggoulart.doodle.slot.application;
 import com.ggoulart.doodle.calendar.application.GetCalendarUseCase;
 import com.ggoulart.doodle.calendar.domain.Calendar;
 import com.ggoulart.doodle.slot.domain.Slot;
+import com.ggoulart.doodle.slot.domain.SlotStatus;
 import com.ggoulart.doodle.user.application.GetUserUseCase;
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
-class SlotService implements CreateSlotUseCase, DeleteSlotUseCase {
+class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUseCase {
 
     private final SlotRepository slotRepository;
     private final GetUserUseCase getUserUseCase;
@@ -41,5 +43,22 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase {
     @Override
     public void deleteSlot(UUID id) {
         slotRepository.deleteById(id);
+    }
+
+    @Override
+    public Slot updateSlot(UpdateSlotCommand command) {
+        Slot existing = slotRepository.findById(command.id())
+                .orElseThrow(() -> new SlotNotFoundException(command.id()));
+
+        Instant startTime = command.startTime() != null ? command.startTime() : existing.startTime();
+        Instant endTime = command.endTime() != null ? command.endTime() : existing.endTime();
+        SlotStatus status = command.status() != null ? command.status() : existing.status();
+
+        if (!endTime.isAfter(startTime)) {
+            throw new InvalidTimeRangeException("endTime must be after startTime");
+        }
+
+        Slot updated = new Slot(existing.id(), existing.calendarId(), startTime, endTime, status);
+        return slotRepository.save(updated);
     }
 }

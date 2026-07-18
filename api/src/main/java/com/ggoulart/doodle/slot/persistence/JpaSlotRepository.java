@@ -2,6 +2,7 @@ package com.ggoulart.doodle.slot.persistence;
 
 import com.ggoulart.doodle.slot.application.SlotRepository;
 import com.ggoulart.doodle.slot.domain.Slot;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Repository;
@@ -21,6 +22,11 @@ class JpaSlotRepository implements SlotRepository {
                 slot.id(), slot.calendarId(), slot.startTime(), slot.endTime(), slot.status());
         SlotEntity saved = slotJpaRepository.save(entity);
         return toDomain(saved);
+    }
+
+    @Override
+    public Optional<Slot> findById(UUID id) {
+        return slotJpaRepository.findById(id).map(this::toDomain);
     }
 
     @Override

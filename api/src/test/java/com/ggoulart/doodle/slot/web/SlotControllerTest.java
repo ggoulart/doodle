@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,6 +14,9 @@ import com.ggoulart.doodle.slot.application.CreateSlotCommand;
 import com.ggoulart.doodle.slot.application.CreateSlotUseCase;
 import com.ggoulart.doodle.slot.application.DeleteSlotUseCase;
 import com.ggoulart.doodle.slot.application.InvalidTimeRangeException;
+import com.ggoulart.doodle.slot.application.SlotNotFoundException;
+import com.ggoulart.doodle.slot.application.UpdateSlotCommand;
+import com.ggoulart.doodle.slot.application.UpdateSlotUseCase;
 import com.ggoulart.doodle.slot.application.UserNotFoundException;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
@@ -40,6 +44,9 @@ class SlotControllerTest {
 
     @MockitoBean
     private DeleteSlotUseCase deleteSlotUseCase;
+
+    @MockitoBean
+    private UpdateSlotUseCase updateSlotUseCase;
 
     private CreateSlotRequest sampleRequest() {
         return new CreateSlotRequest(
@@ -105,5 +112,46 @@ class SlotControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(deleteSlotUseCase).deleteSlot(id);
+    }
+
+    @Test
+    void updateSlotReturnsUpdatedSlot() throws Exception {
+        UUID id = UUID.randomUUID();
+        UpdateSlotRequest request = new UpdateSlotRequest(null, null, SlotStatus.BUSY);
+        Slot updated = new Slot(
+                id, UUID.randomUUID(), Instant.parse("2026-07-20T10:00:00Z"), Instant.parse("2026-07-20T10:30:00Z"), SlotStatus.BUSY);
+        when(updateSlotUseCase.updateSlot(any(UpdateSlotCommand.class))).thenReturn(updated);
+
+        mockMvc.perform(patch("/slots/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.status").value("BUSY"));
+    }
+
+    @Test
+    void updateSlotReturnsNotFoundWhenSlotDoesNotExist() throws Exception {
+        UUID id = UUID.randomUUID();
+        UpdateSlotRequest request = new UpdateSlotRequest(null, null, SlotStatus.BUSY);
+        when(updateSlotUseCase.updateSlot(any(UpdateSlotCommand.class))).thenThrow(new SlotNotFoundException(id));
+
+        mockMvc.perform(patch("/slots/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateSlotReturnsBadRequestForInvalidTimeRange() throws Exception {
+        UUID id = UUID.randomUUID();
+        UpdateSlotRequest request = new UpdateSlotRequest(Instant.parse("2026-07-20T11:00:00Z"), null, null);
+        when(updateSlotUseCase.updateSlot(any(UpdateSlotCommand.class)))
+                .thenThrow(new InvalidTimeRangeException("endTime must be after startTime"));
+
+        mockMvc.perform(patch("/slots/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }

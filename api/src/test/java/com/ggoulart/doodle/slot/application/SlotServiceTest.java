@@ -95,4 +95,75 @@ class SlotServiceTest {
 
         verify(slotRepository).deleteById(id);
     }
+
+    @Test
+    void updateSlotAppliesAllProvidedFields() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        Slot existing = new Slot(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Instant.parse("2026-07-20T10:00:00Z"),
+                Instant.parse("2026-07-20T10:30:00Z"),
+                SlotStatus.FREE);
+        Instant newStart = Instant.parse("2026-07-20T11:00:00Z");
+        Instant newEnd = Instant.parse("2026-07-20T11:30:00Z");
+        UpdateSlotCommand command = new UpdateSlotCommand(existing.id(), newStart, newEnd, SlotStatus.BUSY);
+
+        when(slotRepository.findById(existing.id())).thenReturn(Optional.of(existing));
+        when(slotRepository.save(any(Slot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Slot updated = service.updateSlot(command);
+
+        assertThat(updated.id()).isEqualTo(existing.id());
+        assertThat(updated.calendarId()).isEqualTo(existing.calendarId());
+        assertThat(updated.startTime()).isEqualTo(newStart);
+        assertThat(updated.endTime()).isEqualTo(newEnd);
+        assertThat(updated.status()).isEqualTo(SlotStatus.BUSY);
+    }
+
+    @Test
+    void updateSlotKeepsUnprovidedFieldsUnchanged() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        Slot existing = new Slot(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Instant.parse("2026-07-20T10:00:00Z"),
+                Instant.parse("2026-07-20T10:30:00Z"),
+                SlotStatus.FREE);
+        UpdateSlotCommand command = new UpdateSlotCommand(existing.id(), null, null, SlotStatus.BUSY);
+
+        when(slotRepository.findById(existing.id())).thenReturn(Optional.of(existing));
+        when(slotRepository.save(any(Slot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Slot updated = service.updateSlot(command);
+
+        assertThat(updated.startTime()).isEqualTo(existing.startTime());
+        assertThat(updated.endTime()).isEqualTo(existing.endTime());
+        assertThat(updated.status()).isEqualTo(SlotStatus.BUSY);
+    }
+
+    @Test
+    void updateSlotThrowsWhenSlotDoesNotExist() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        UUID id = UUID.randomUUID();
+        UpdateSlotCommand command = new UpdateSlotCommand(id, null, null, SlotStatus.BUSY);
+        when(slotRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateSlot(command)).isInstanceOf(SlotNotFoundException.class);
+    }
+
+    @Test
+    void updateSlotThrowsWhenResultingTimeRangeIsInvalid() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        Slot existing = new Slot(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Instant.parse("2026-07-20T10:00:00Z"),
+                Instant.parse("2026-07-20T10:30:00Z"),
+                SlotStatus.FREE);
+        UpdateSlotCommand command = new UpdateSlotCommand(existing.id(), Instant.parse("2026-07-20T11:00:00Z"), null, null);
+        when(slotRepository.findById(existing.id())).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.updateSlot(command)).isInstanceOf(InvalidTimeRangeException.class);
+    }
 }
