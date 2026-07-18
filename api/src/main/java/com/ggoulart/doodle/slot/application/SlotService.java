@@ -77,10 +77,6 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
         Calendar calendar = getCalendarUseCase.getCalendarByUserId(userId)
                 .orElseThrow(() -> new CalendarNotFoundException(userId));
 
-        List<Slot> slots = slotRepository.findByCalendarIdAndOverlapping(calendar.id(), command.from(), command.to());
-        if (command.status() != null) {
-            slots = slots.stream().filter(slot -> slot.status() == command.status()).toList();
-        }
-        return slots;
+        return slotRepository.findByCalendarIdAndOverlapping(calendar.id(), command.from(), command.to(), command.status());
     }
 }

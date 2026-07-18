@@ -169,7 +169,7 @@ class SlotServiceTest {
     }
 
     @Test
-    void querySlotsReturnsOverlappingSlotsForResolvedCalendar() {
+    void querySlotsDelegatesToRepositoryWithResolvedCalendarAndNoStatusFilter() {
         SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
         UUID userId = UUID.randomUUID();
         Calendar calendar = new Calendar(UUID.randomUUID(), userId);
@@ -181,7 +181,7 @@ class SlotServiceTest {
 
         when(getUserUseCase.getUser(userId)).thenReturn(Optional.of(new User(userId, "Ada Lovelace", "ada@example.com")));
         when(getCalendarUseCase.getCalendarByUserId(userId)).thenReturn(Optional.of(calendar));
-        when(slotRepository.findByCalendarIdAndOverlapping(calendar.id(), from, to)).thenReturn(List.of(freeSlot, busySlot));
+        when(slotRepository.findByCalendarIdAndOverlapping(calendar.id(), from, to, null)).thenReturn(List.of(freeSlot, busySlot));
 
         List<Slot> slots = service.querySlots(command);
 
@@ -189,19 +189,18 @@ class SlotServiceTest {
     }
 
     @Test
-    void querySlotsFiltersByStatusWhenProvided() {
+    void querySlotsForwardsStatusFilterToRepository() {
         SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
         UUID userId = UUID.randomUUID();
         Calendar calendar = new Calendar(UUID.randomUUID(), userId);
         Instant from = Instant.parse("2026-07-20T00:00:00Z");
         Instant to = Instant.parse("2026-07-21T00:00:00Z");
         Slot freeSlot = new Slot(UUID.randomUUID(), calendar.id(), from, from.plusSeconds(1800), SlotStatus.FREE);
-        Slot busySlot = new Slot(UUID.randomUUID(), calendar.id(), from.plusSeconds(3600), from.plusSeconds(5400), SlotStatus.BUSY);
         QuerySlotsCommand command = new QuerySlotsCommand(userId, from, to, SlotStatus.FREE);
 
         when(getUserUseCase.getUser(userId)).thenReturn(Optional.of(new User(userId, "Ada Lovelace", "ada@example.com")));
         when(getCalendarUseCase.getCalendarByUserId(userId)).thenReturn(Optional.of(calendar));
-        when(slotRepository.findByCalendarIdAndOverlapping(calendar.id(), from, to)).thenReturn(List.of(freeSlot, busySlot));
+        when(slotRepository.findByCalendarIdAndOverlapping(calendar.id(), from, to, SlotStatus.FREE)).thenReturn(List.of(freeSlot));
 
         List<Slot> slots = service.querySlots(command);
 

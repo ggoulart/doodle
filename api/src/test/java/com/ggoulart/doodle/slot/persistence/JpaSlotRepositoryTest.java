@@ -83,10 +83,10 @@ class JpaSlotRepositoryTest {
         Instant to = Instant.parse("2026-07-21T00:00:00Z");
         SlotEntity entity = new SlotEntity(
                 UUID.randomUUID(), calendarId, Instant.parse("2026-07-20T10:00:00Z"), Instant.parse("2026-07-20T10:30:00Z"), SlotStatus.FREE);
-        when(slotJpaRepository.findByCalendarIdAndStartTimeLessThanAndEndTimeGreaterThan(calendarId, to, from))
+        when(slotJpaRepository.findByCalendarIdAndOverlapping(calendarId, from, to, null))
                 .thenReturn(List.of(entity));
 
-        List<Slot> slots = repository.findByCalendarIdAndOverlapping(calendarId, from, to);
+        List<Slot> slots = repository.findByCalendarIdAndOverlapping(calendarId, from, to, null);
 
         assertThat(slots).containsExactly(
                 new Slot(entity.getId(), calendarId, entity.getStartTime(), entity.getEndTime(), SlotStatus.FREE));

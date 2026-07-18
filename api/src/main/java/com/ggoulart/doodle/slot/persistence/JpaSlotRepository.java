@@ -2,6 +2,7 @@ package com.ggoulart.doodle.slot.persistence;
 
 import com.ggoulart.doodle.slot.application.SlotRepository;
 import com.ggoulart.doodle.slot.domain.Slot;
+import com.ggoulart.doodle.slot.domain.SlotStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -32,8 +33,8 @@ class JpaSlotRepository implements SlotRepository {
     }
 
     @Override
-    public List<Slot> findByCalendarIdAndOverlapping(UUID calendarId, Instant from, Instant to) {
-        return slotJpaRepository.findByCalendarIdAndStartTimeLessThanAndEndTimeGreaterThan(calendarId, to, from)
+    public List<Slot> findByCalendarIdAndOverlapping(UUID calendarId, Instant from, Instant to, SlotStatus status) {
+        return slotJpaRepository.findByCalendarIdAndOverlapping(calendarId, from, to, status)
                 .stream()
                 .map(this::toDomain)
                 .toList();
