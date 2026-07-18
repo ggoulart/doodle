@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ggoulart.doodle.calendar.domain.Calendar;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,5 +33,29 @@ class JpaCalendarRepositoryTest {
         verify(calendarJpaRepository).save(captor.capture());
         assertThat(captor.getValue().getId()).isEqualTo(calendar.id());
         assertThat(captor.getValue().getUserId()).isEqualTo(calendar.userId());
+    }
+
+    @Test
+    void findByUserIdMapsEntityToDomainWhenPresent() {
+        JpaCalendarRepository repository = new JpaCalendarRepository(calendarJpaRepository);
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CalendarEntity entity = new CalendarEntity(id, userId);
+        when(calendarJpaRepository.findByUserId(userId)).thenReturn(Optional.of(entity));
+
+        Optional<Calendar> found = repository.findByUserId(userId);
+
+        assertThat(found).contains(new Calendar(id, userId));
+    }
+
+    @Test
+    void findByUserIdReturnsEmptyWhenMissing() {
+        JpaCalendarRepository repository = new JpaCalendarRepository(calendarJpaRepository);
+        UUID userId = UUID.randomUUID();
+        when(calendarJpaRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        Optional<Calendar> found = repository.findByUserId(userId);
+
+        assertThat(found).isEmpty();
     }
 }

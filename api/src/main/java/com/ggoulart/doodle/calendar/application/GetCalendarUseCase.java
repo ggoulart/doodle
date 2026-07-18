@@ -4,9 +4,7 @@ import com.ggoulart.doodle.calendar.domain.Calendar;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface CalendarRepository {
+public interface GetCalendarUseCase {
 
-    Calendar save(Calendar calendar);
-
-    Optional<Calendar> findByUserId(UUID userId);
+    Optional<Calendar> getCalendarByUserId(UUID userId);
 }
