@@ -1,7 +1,7 @@
 package com.ggoulart.doodle.user.persistence;
 
-import com.ggoulart.doodle.user.User;
-import com.ggoulart.doodle.user.UserRepository;
+import com.ggoulart.doodle.user.application.UserRepository;
+import com.ggoulart.doodle.user.domain.User;
 import org.springframework.stereotype.Repository;
 
 @Repository

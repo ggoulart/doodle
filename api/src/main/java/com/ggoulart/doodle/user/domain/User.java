@@ -1,4 +1,4 @@
-package com.ggoulart.doodle.user;
+package com.ggoulart.doodle.user.domain;
 
 import java.util.UUID;
 

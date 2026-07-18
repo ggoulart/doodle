@@ -1,5 +1,6 @@
-package com.ggoulart.doodle.user;
+package com.ggoulart.doodle.user.application;
 
+import com.ggoulart.doodle.user.domain.User;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -13,8 +14,8 @@ class UserService implements CreateUserUseCase {
     }
 
     @Override
-    public User createUser(CreateUserRequest request) {
-        User user = new User(UUID.randomUUID(), request.name(), request.email());
+    public User createUser(CreateUserCommand command) {
+        User user = new User(UUID.randomUUID(), command.name(), command.email());
         return userRepository.save(user);
     }
 }
