@@ -1,7 +1,9 @@
 package com.ggoulart.doodle.slot.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 @ExtendWith(MockitoExtension.class)
 class JpaSlotRepositoryTest {
@@ -42,5 +45,24 @@ class JpaSlotRepositoryTest {
         assertThat(captor.getValue().getStartTime()).isEqualTo(slot.startTime());
         assertThat(captor.getValue().getEndTime()).isEqualTo(slot.endTime());
         assertThat(captor.getValue().getStatus()).isEqualTo(slot.status());
+    }
+
+    @Test
+    void deleteByIdDelegatesToJpaRepository() {
+        JpaSlotRepository repository = new JpaSlotRepository(slotJpaRepository);
+        UUID id = UUID.randomUUID();
+
+        repository.deleteById(id);
+
+        verify(slotJpaRepository).deleteById(id);
+    }
+
+    @Test
+    void deleteByIdIsNoOpWhenSlotDoesNotExist() {
+        JpaSlotRepository repository = new JpaSlotRepository(slotJpaRepository);
+        UUID id = UUID.randomUUID();
+        doThrow(new EmptyResultDataAccessException(1)).when(slotJpaRepository).deleteById(id);
+
+        assertThatCode(() -> repository.deleteById(id)).doesNotThrowAnyException();
     }
 }

@@ -3,6 +3,7 @@ package com.ggoulart.doodle.slot.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ggoulart.doodle.calendar.application.GetCalendarUseCase;
@@ -83,5 +84,15 @@ class SlotServiceTest {
         when(getCalendarUseCase.getCalendarByUserId(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createSlot(command)).isInstanceOf(CalendarNotFoundException.class);
+    }
+
+    @Test
+    void deleteSlotDelegatesToRepository() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
+        UUID id = UUID.randomUUID();
+
+        service.deleteSlot(id);
+
+        verify(slotRepository).deleteById(id);
     }
 }

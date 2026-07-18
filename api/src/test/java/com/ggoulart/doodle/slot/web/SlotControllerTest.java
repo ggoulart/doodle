@@ -1,7 +1,9 @@
 package com.ggoulart.doodle.slot.web;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.ggoulart.doodle.slot.application.CalendarNotFoundException;
 import com.ggoulart.doodle.slot.application.CreateSlotCommand;
 import com.ggoulart.doodle.slot.application.CreateSlotUseCase;
+import com.ggoulart.doodle.slot.application.DeleteSlotUseCase;
 import com.ggoulart.doodle.slot.application.InvalidTimeRangeException;
 import com.ggoulart.doodle.slot.application.UserNotFoundException;
 import com.ggoulart.doodle.slot.domain.Slot;
@@ -34,6 +37,9 @@ class SlotControllerTest {
 
     @MockitoBean
     private CreateSlotUseCase createSlotUseCase;
+
+    @MockitoBean
+    private DeleteSlotUseCase deleteSlotUseCase;
 
     private CreateSlotRequest sampleRequest() {
         return new CreateSlotRequest(
@@ -89,5 +95,15 @@ class SlotControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleRequest())))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteSlotReturnsNoContent() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete("/slots/{id}", id))
+                .andExpect(status().isNoContent());
+
+        verify(deleteSlotUseCase).deleteSlot(id);
     }
 }

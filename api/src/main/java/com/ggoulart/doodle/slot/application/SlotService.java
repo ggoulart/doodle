@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
-class SlotService implements CreateSlotUseCase {
+class SlotService implements CreateSlotUseCase, DeleteSlotUseCase {
 
     private final SlotRepository slotRepository;
     private final GetUserUseCase getUserUseCase;
@@ -36,5 +36,10 @@ class SlotService implements CreateSlotUseCase {
 
         Slot slot = new Slot(UUID.randomUUID(), calendar.id(), command.startTime(), command.endTime(), command.status());
         return slotRepository.save(slot);
+    }
+
+    @Override
+    public void deleteSlot(UUID id) {
+        slotRepository.deleteById(id);
     }
 }

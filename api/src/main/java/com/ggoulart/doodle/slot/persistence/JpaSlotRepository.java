@@ -2,6 +2,8 @@ package com.ggoulart.doodle.slot.persistence;
 
 import com.ggoulart.doodle.slot.application.SlotRepository;
 import com.ggoulart.doodle.slot.domain.Slot;
+import java.util.UUID;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,6 +21,15 @@ class JpaSlotRepository implements SlotRepository {
                 slot.id(), slot.calendarId(), slot.startTime(), slot.endTime(), slot.status());
         SlotEntity saved = slotJpaRepository.save(entity);
         return toDomain(saved);
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        try {
+            slotJpaRepository.deleteById(id);
+        } catch (EmptyResultDataAccessException ignored) {
+            // already gone - deleting a nonexistent slot is a no-op, not an error
+        }
     }
 
     private Slot toDomain(SlotEntity entity) {
