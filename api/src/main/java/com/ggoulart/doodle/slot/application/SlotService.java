@@ -26,10 +26,6 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
 
     @Override
     public Slot createSlot(CreateSlotCommand command) {
-        if (!command.endTime().isAfter(command.startTime())) {
-            throw new InvalidTimeRangeException("endTime must be after startTime");
-        }
-
         UUID userId = command.userId();
         if (getUserUseCase.getUser(userId).isEmpty()) {
             throw new UserNotFoundException(userId);
@@ -56,20 +52,12 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
         Instant endTime = command.endTime() != null ? command.endTime() : existing.endTime();
         SlotStatus status = command.status() != null ? command.status() : existing.status();
 
-        if (!endTime.isAfter(startTime)) {
-            throw new InvalidTimeRangeException("endTime must be after startTime");
-        }
-
         Slot updated = new Slot(existing.id(), existing.calendarId(), startTime, endTime, status);
         return slotRepository.save(updated);
     }
 
     @Override
     public List<Slot> querySlots(QuerySlotsCommand command) {
-        if (!command.to().isAfter(command.from())) {
-            throw new InvalidTimeRangeException("to must be after from");
-        }
-
         UUID userId = command.userId();
         if (getUserUseCase.getUser(userId).isEmpty()) {
             throw new UserNotFoundException(userId);

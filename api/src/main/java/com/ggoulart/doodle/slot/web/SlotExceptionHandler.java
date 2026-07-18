@@ -1,9 +1,9 @@
 package com.ggoulart.doodle.slot.web;
 
 import com.ggoulart.doodle.slot.application.CalendarNotFoundException;
-import com.ggoulart.doodle.slot.application.InvalidTimeRangeException;
 import com.ggoulart.doodle.slot.application.SlotNotFoundException;
 import com.ggoulart.doodle.slot.application.UserNotFoundException;
+import com.ggoulart.doodle.slot.domain.InvalidTimeRangeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

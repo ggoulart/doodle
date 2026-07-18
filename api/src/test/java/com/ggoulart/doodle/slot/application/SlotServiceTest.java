@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.ggoulart.doodle.calendar.application.GetCalendarUseCase;
 import com.ggoulart.doodle.calendar.domain.Calendar;
+import com.ggoulart.doodle.slot.domain.InvalidTimeRangeException;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
 import com.ggoulart.doodle.user.application.GetUserUseCase;
@@ -53,15 +54,6 @@ class SlotServiceTest {
         assertThat(slot.endTime()).isEqualTo(end);
         assertThat(slot.status()).isEqualTo(SlotStatus.FREE);
         assertThat(slot.id()).isNotNull();
-    }
-
-    @Test
-    void createSlotThrowsWhenEndTimeNotAfterStartTime() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
-        Instant start = Instant.parse("2026-07-20T10:00:00Z");
-        CreateSlotCommand command = new CreateSlotCommand(UUID.randomUUID(), start, start, SlotStatus.FREE);
-
-        assertThatThrownBy(() -> service.createSlot(command)).isInstanceOf(InvalidTimeRangeException.class);
     }
 
     @Test
@@ -205,15 +197,6 @@ class SlotServiceTest {
         List<Slot> slots = service.querySlots(command);
 
         assertThat(slots).containsExactly(freeSlot);
-    }
-
-    @Test
-    void querySlotsThrowsWhenToIsNotAfterFrom() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase);
-        Instant from = Instant.parse("2026-07-20T00:00:00Z");
-        QuerySlotsCommand command = new QuerySlotsCommand(UUID.randomUUID(), from, from, null);
-
-        assertThatThrownBy(() -> service.querySlots(command)).isInstanceOf(InvalidTimeRangeException.class);
     }
 
     @Test

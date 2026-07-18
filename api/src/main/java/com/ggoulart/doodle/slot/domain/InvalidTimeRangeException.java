@@ -1,4 +1,4 @@
-package com.ggoulart.doodle.slot.application;
+package com.ggoulart.doodle.slot.domain;
 
 public class InvalidTimeRangeException extends RuntimeException {
 
