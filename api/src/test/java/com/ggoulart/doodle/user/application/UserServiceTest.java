@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ggoulart.doodle.calendar.application.CreateCalendarUseCase;
+import com.ggoulart.doodle.user.domain.InvalidEmailException;
+import com.ggoulart.doodle.user.domain.InvalidNameException;
 import com.ggoulart.doodle.user.domain.User;
 import java.util.Optional;
 import java.util.UUID;

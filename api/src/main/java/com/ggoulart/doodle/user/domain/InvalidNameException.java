@@ -1,4 +1,4 @@
-package com.ggoulart.doodle.user.application;
+package com.ggoulart.doodle.user.domain;
 
 public class InvalidNameException extends RuntimeException {
 

@@ -1,8 +1,8 @@
 package com.ggoulart.doodle.user.web;
 
 import com.ggoulart.doodle.user.application.DuplicateEmailException;
-import com.ggoulart.doodle.user.application.InvalidEmailException;
-import com.ggoulart.doodle.user.application.InvalidNameException;
+import com.ggoulart.doodle.user.domain.InvalidEmailException;
+import com.ggoulart.doodle.user.domain.InvalidNameException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
