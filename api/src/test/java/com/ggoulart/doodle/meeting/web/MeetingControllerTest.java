@@ -12,6 +12,7 @@ import com.ggoulart.doodle.meeting.application.BookSlotUseCase;
 import com.ggoulart.doodle.meeting.application.MeetingAlreadyExistsException;
 import com.ggoulart.doodle.meeting.application.SlotNotFoundException;
 import com.ggoulart.doodle.meeting.application.SlotNotFreeException;
+import com.ggoulart.doodle.meeting.domain.InvalidParticipantException;
 import com.ggoulart.doodle.meeting.domain.Meeting;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
@@ -90,5 +91,17 @@ class MeetingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleRequest())))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void bookSlotReturnsBadRequestWhenParticipantIsInvalid() throws Exception {
+        UUID slotId = UUID.randomUUID();
+        when(bookSlotUseCase.bookSlot(any(BookSlotCommand.class)))
+                .thenThrow(new InvalidParticipantException("participant is not a valid email: not-an-email"));
+
+        mockMvc.perform(post("/slots/{id}/meetings", slotId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isBadRequest());
     }
 }
