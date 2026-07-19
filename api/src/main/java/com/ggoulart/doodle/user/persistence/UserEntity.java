@@ -1,13 +1,13 @@
 package com.ggoulart.doodle.user.persistence;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uk_users_email", columnNames = "email"))
 class UserEntity {
 
     @Id
@@ -15,7 +15,6 @@ class UserEntity {
 
     private String name;
 
-    @Column(unique = true)
     private String email;
 
     protected UserEntity() {

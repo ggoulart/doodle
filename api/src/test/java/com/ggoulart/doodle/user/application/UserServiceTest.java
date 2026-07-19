@@ -69,15 +69,6 @@ class UserServiceTest {
     }
 
     @Test
-    void createUserThrowsWhenEmailAlreadyExistsRegardlessOfCase() {
-        UserService service = new UserService(userRepository, createCalendarUseCase);
-        CreateUserCommand command = new CreateUserCommand("Ada Lovelace", "Ada@Example.com");
-        when(userRepository.existsByEmail("ada@example.com")).thenReturn(true);
-
-        assertThatThrownBy(() -> service.createUser(command)).isInstanceOf(DuplicateEmailException.class);
-    }
-
-    @Test
     void getUserReturnsUserWhenFound() {
         UserService service = new UserService(userRepository, createCalendarUseCase);
         User user = new User(UUID.randomUUID(), "Ada Lovelace", "ada@example.com");

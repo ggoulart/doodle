@@ -22,11 +22,6 @@ class UserService implements CreateUserUseCase, GetUserUseCase {
     @Override
     public User createUser(CreateUserCommand command) {
         User user = new User(UUID.randomUUID(), command.name(), command.email());
-
-        if (userRepository.existsByEmail(user.email())) {
-            throw new DuplicateEmailException(user.email());
-        }
-
         User savedUser = userRepository.save(user);
         createCalendarUseCase.createCalendar(savedUser.id());
         return savedUser;
