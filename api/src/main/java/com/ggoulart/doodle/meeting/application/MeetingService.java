@@ -13,8 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 class MeetingService implements BookSlotUseCase {
 
-    private static final String DEFAULT_TITLE = "(No title)";
-
     private final MeetingRepository meetingRepository;
     private final GetSlotUseCase getSlotUseCase;
     private final UpdateSlotUseCase updateSlotUseCase;
@@ -38,8 +36,8 @@ class MeetingService implements BookSlotUseCase {
             throw new SlotNotFreeException(slotId);
         }
 
-        String title = command.title() == null || command.title().isBlank() ? DEFAULT_TITLE : command.title();
-        Meeting meeting = new Meeting(UUID.randomUUID(), slotId, title, command.description(), command.participants());
+        Meeting meeting = new Meeting(
+                UUID.randomUUID(), slotId, command.title(), command.description(), command.participants());
         Meeting savedMeeting = meetingRepository.save(meeting);
 
         Slot updatedSlot = updateSlotUseCase.updateSlot(new UpdateSlotCommand(slotId, null, null, SlotStatus.BUSY));
