@@ -1,5 +1,6 @@
 package com.ggoulart.doodle.user.persistence;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -14,6 +15,7 @@ class UserEntity {
 
     private String name;
 
+    @Column(unique = true)
     private String email;
 
     protected UserEntity() {

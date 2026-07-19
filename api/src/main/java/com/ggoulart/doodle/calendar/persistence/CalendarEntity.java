@@ -13,7 +13,7 @@ class CalendarEntity {
     @Id
     private UUID id;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", unique = true)
     private UUID userId;
 
     protected CalendarEntity() {

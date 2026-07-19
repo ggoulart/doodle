@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,7 +18,7 @@ class MeetingEntity {
     @Id
     private UUID id;
 
-    @Column(name = "slot_id")
+    @Column(name = "slot_id", unique = true)
     private UUID slotId;
 
     private String title;
@@ -25,7 +26,10 @@ class MeetingEntity {
     private String description;
 
     @ElementCollection
-    @CollectionTable(name = "meeting_participants", joinColumns = @JoinColumn(name = "meeting_id"))
+    @CollectionTable(
+            name = "meeting_participants",
+            joinColumns = @JoinColumn(name = "meeting_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"meeting_id", "participant"}))
     @Column(name = "participant")
     private List<String> participants;
 
