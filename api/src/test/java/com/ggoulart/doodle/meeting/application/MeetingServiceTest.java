@@ -46,7 +46,6 @@ class MeetingServiceTest {
                 slot.id(), "Planning", "Sprint planning", List.of("ada@example.com", "grace@example.com"));
 
         when(getSlotUseCase.getSlot(slot.id())).thenReturn(Optional.of(slot));
-        when(meetingRepository.existsBySlotId(slot.id())).thenReturn(false);
         when(meetingRepository.save(any(Meeting.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(updateSlotUseCase.updateSlot(new UpdateSlotCommand(slot.id(), null, null, SlotStatus.BUSY))).thenReturn(busySlot);
 
@@ -70,22 +69,6 @@ class MeetingServiceTest {
     }
 
     @Test
-    void bookSlotThrowsWhenMeetingAlreadyExistsForSlot() {
-        MeetingService service = new MeetingService(meetingRepository, getSlotUseCase, updateSlotUseCase);
-        Slot slot = new Slot(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                Instant.parse("2026-07-20T10:00:00Z"),
-                Instant.parse("2026-07-20T10:30:00Z"),
-                SlotStatus.FREE);
-        BookSlotCommand command = new BookSlotCommand(slot.id(), "Planning", null, List.of());
-        when(getSlotUseCase.getSlot(slot.id())).thenReturn(Optional.of(slot));
-        when(meetingRepository.existsBySlotId(slot.id())).thenReturn(true);
-
-        assertThatThrownBy(() -> service.bookSlot(command)).isInstanceOf(MeetingAlreadyExistsException.class);
-    }
-
-    @Test
     void bookSlotThrowsWhenSlotIsNotFree() {
         MeetingService service = new MeetingService(meetingRepository, getSlotUseCase, updateSlotUseCase);
         Slot slot = new Slot(
@@ -96,7 +79,6 @@ class MeetingServiceTest {
                 SlotStatus.BUSY);
         BookSlotCommand command = new BookSlotCommand(slot.id(), "Planning", null, List.of());
         when(getSlotUseCase.getSlot(slot.id())).thenReturn(Optional.of(slot));
-        when(meetingRepository.existsBySlotId(slot.id())).thenReturn(false);
 
         assertThatThrownBy(() -> service.bookSlot(command)).isInstanceOf(SlotNotFreeException.class);
     }
@@ -114,7 +96,6 @@ class MeetingServiceTest {
         BookSlotCommand command = new BookSlotCommand(slot.id(), "   ", null, List.of());
 
         when(getSlotUseCase.getSlot(slot.id())).thenReturn(Optional.of(slot));
-        when(meetingRepository.existsBySlotId(slot.id())).thenReturn(false);
         when(meetingRepository.save(any(Meeting.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(updateSlotUseCase.updateSlot(new UpdateSlotCommand(slot.id(), null, null, SlotStatus.BUSY))).thenReturn(busySlot);
 

@@ -12,13 +12,13 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "meetings")
+@Table(name = "meetings", uniqueConstraints = @UniqueConstraint(name = "uk_meetings_slot_id", columnNames = "slot_id"))
 class MeetingEntity {
 
     @Id
     private UUID id;
 
-    @Column(name = "slot_id", unique = true)
+    @Column(name = "slot_id")
     private UUID slotId;
 
     private String title;
@@ -29,7 +29,7 @@ class MeetingEntity {
     @CollectionTable(
             name = "meeting_participants",
             joinColumns = @JoinColumn(name = "meeting_id"),
-            uniqueConstraints = @UniqueConstraint(columnNames = {"meeting_id", "participant"}))
+            uniqueConstraints = @UniqueConstraint(name = "uk_meeting_participants", columnNames = {"meeting_id", "participant"}))
     @Column(name = "participant")
     private List<String> participants;
 

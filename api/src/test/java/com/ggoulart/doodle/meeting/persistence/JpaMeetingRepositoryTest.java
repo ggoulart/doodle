@@ -1,18 +1,24 @@
 package com.ggoulart.doodle.meeting.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ggoulart.doodle.meeting.application.MeetingAlreadyExistsException;
+import com.ggoulart.doodle.meeting.domain.InvalidParticipantException;
 import com.ggoulart.doodle.meeting.domain.Meeting;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 class JpaMeetingRepositoryTest {
@@ -25,13 +31,13 @@ class JpaMeetingRepositoryTest {
         JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
         Meeting meeting = new Meeting(
                 UUID.randomUUID(), UUID.randomUUID(), "Planning", "Sprint planning", List.of("ada@example.com"));
-        when(meetingJpaRepository.save(any(MeetingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(meetingJpaRepository.saveAndFlush(any(MeetingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Meeting saved = repository.save(meeting);
 
         assertThat(saved).isEqualTo(meeting);
         ArgumentCaptor<MeetingEntity> captor = ArgumentCaptor.forClass(MeetingEntity.class);
-        verify(meetingJpaRepository).save(captor.capture());
+        verify(meetingJpaRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getId()).isEqualTo(meeting.id());
         assertThat(captor.getValue().getSlotId()).isEqualTo(meeting.slotId());
         assertThat(captor.getValue().getTitle()).isEqualTo(meeting.title());
@@ -40,13 +46,41 @@ class JpaMeetingRepositoryTest {
     }
 
     @Test
-    void existsBySlotIdDelegatesToJpaRepository() {
+    void saveThrowsMeetingAlreadyExistsExceptionWhenSlotIdConstraintViolated() {
         JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
-        UUID slotId = UUID.randomUUID();
-        when(meetingJpaRepository.existsBySlotId(slotId)).thenReturn(true);
+        Meeting meeting = new Meeting(
+                UUID.randomUUID(), UUID.randomUUID(), "Planning", null, List.of());
+        when(meetingJpaRepository.saveAndFlush(any(MeetingEntity.class)))
+                .thenThrow(wrapConstraintViolation("uk_meetings_slot_id"));
 
-        boolean exists = repository.existsBySlotId(slotId);
+        assertThatThrownBy(() -> repository.save(meeting)).isInstanceOf(MeetingAlreadyExistsException.class);
+    }
 
-        assertThat(exists).isTrue();
+    @Test
+    void saveThrowsInvalidParticipantExceptionWhenParticipantsConstraintViolated() {
+        JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
+        Meeting meeting = new Meeting(
+                UUID.randomUUID(), UUID.randomUUID(), "Planning", null, List.of("ada@example.com"));
+        when(meetingJpaRepository.saveAndFlush(any(MeetingEntity.class)))
+                .thenThrow(wrapConstraintViolation("uk_meeting_participants"));
+
+        assertThatThrownBy(() -> repository.save(meeting)).isInstanceOf(InvalidParticipantException.class);
+    }
+
+    @Test
+    void saveRethrowsWhenViolatedConstraintIsUnrelated() {
+        JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
+        Meeting meeting = new Meeting(
+                UUID.randomUUID(), UUID.randomUUID(), "Planning", null, List.of());
+        DataIntegrityViolationException exception = wrapConstraintViolation("some_other_constraint");
+        when(meetingJpaRepository.saveAndFlush(any(MeetingEntity.class))).thenThrow(exception);
+
+        assertThatThrownBy(() -> repository.save(meeting)).isSameAs(exception);
+    }
+
+    private DataIntegrityViolationException wrapConstraintViolation(String constraintName) {
+        ConstraintViolationException constraintViolationException = new ConstraintViolationException(
+                "could not execute statement", new SQLException("constraint violated"), constraintName);
+        return new DataIntegrityViolationException("could not execute statement", constraintViolationException);
     }
 }

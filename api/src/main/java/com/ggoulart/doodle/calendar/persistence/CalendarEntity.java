@@ -4,16 +4,17 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.util.UUID;
 
 @Entity
-@Table(name = "calendars")
+@Table(name = "calendars", uniqueConstraints = @UniqueConstraint(name = "uk_calendars_user_id", columnNames = "user_id"))
 class CalendarEntity {
 
     @Id
     private UUID id;
 
-    @Column(name = "user_id", unique = true)
+    @Column(name = "user_id")
     private UUID userId;
 
     protected CalendarEntity() {

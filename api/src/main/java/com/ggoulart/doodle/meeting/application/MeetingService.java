@@ -29,9 +29,6 @@ class MeetingService implements BookSlotUseCase {
         UUID slotId = command.slotId();
         Slot slot = getSlotUseCase.getSlot(slotId).orElseThrow(() -> new SlotNotFoundException(slotId));
 
-        if (meetingRepository.existsBySlotId(slotId)) {
-            throw new MeetingAlreadyExistsException(slotId);
-        }
         if (slot.status() != SlotStatus.FREE) {
             throw new SlotNotFreeException(slotId);
         }
