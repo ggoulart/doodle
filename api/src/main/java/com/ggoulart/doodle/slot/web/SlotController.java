@@ -9,6 +9,13 @@ import com.ggoulart.doodle.slot.application.UpdateSlotCommand;
 import com.ggoulart.doodle.slot.application.UpdateSlotUseCase;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -27,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/slots")
+@Tag(name = "Slots", description = "Create, query, update, and delete time slots within a user's calendar.")
 public class SlotController {
 
     private static final Duration DEFAULT_RANGE = Duration.ofDays(7);
@@ -48,6 +56,13 @@ public class SlotController {
     }
 
     @PostMapping
+    @Operation(summary = "Create a slot", description = "Creates a slot in the given user's calendar.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Slot created",
+                    content = @Content(schema = @Schema(implementation = Slot.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid time range, or the user/calendar doesn't exist",
+                    content = @Content(schema = @Schema(implementation = String.class)))
+    })
     public ResponseEntity<Slot> createSlot(@RequestBody CreateSlotRequest request) {
         CreateSlotCommand command = new CreateSlotCommand(
                 request.userId(), request.startTime(), request.endTime(), request.status());
@@ -56,6 +71,13 @@ public class SlotController {
     }
 
     @GetMapping
+    @Operation(summary = "Query slots", description = "Lists a user's slots overlapping [from, to) — defaulting to the next 7 days when omitted — optionally filtered by status.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Slots found (possibly empty)",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = Slot.class)))),
+            @ApiResponse(responseCode = "400", description = "Invalid time range, or the user/calendar doesn't exist",
+                    content = @Content(schema = @Schema(implementation = String.class)))
+    })
     public ResponseEntity<List<Slot>> querySlots(
             @RequestParam UUID userId,
             @RequestParam(required = false) Instant from,
@@ -68,6 +90,17 @@ public class SlotController {
     }
 
     @PatchMapping("/{id}")
+    @Operation(summary = "Update a slot", description = "Partially updates a slot's time range and/or status. Rejected if the slot currently has a meeting booked.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Slot updated",
+                    content = @Content(schema = @Schema(implementation = Slot.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid resulting time range",
+                    content = @Content(schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "404", description = "No slot with that id",
+                    content = @Content(schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "409", description = "Slot has a meeting booked and can't be modified",
+                    content = @Content(schema = @Schema(implementation = String.class)))
+    })
     public ResponseEntity<Slot> updateSlot(@PathVariable UUID id, @RequestBody UpdateSlotRequest request) {
         UpdateSlotCommand command = new UpdateSlotCommand(id, request.startTime(), request.endTime(), request.status());
         Slot slot = updateSlotUseCase.updateSlot(command);
@@ -75,6 +108,12 @@ public class SlotController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a slot")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Slot deleted (or already absent)"),
+            @ApiResponse(responseCode = "409", description = "Slot has a meeting booked and can't be deleted",
+                    content = @Content(schema = @Schema(implementation = String.class)))
+    })
     public ResponseEntity<Void> deleteSlot(@PathVariable UUID id) {
         deleteSlotUseCase.deleteSlot(id);
         return ResponseEntity.noContent().build();
