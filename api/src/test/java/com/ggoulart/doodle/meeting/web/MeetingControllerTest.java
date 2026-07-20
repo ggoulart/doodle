@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,6 +13,7 @@ import com.ggoulart.doodle.meeting.application.BookSlotCommand;
 import com.ggoulart.doodle.meeting.application.BookSlotResult;
 import com.ggoulart.doodle.meeting.application.BookSlotUseCase;
 import com.ggoulart.doodle.meeting.application.DeleteMeetingUseCase;
+import com.ggoulart.doodle.meeting.application.GetMeetingUseCase;
 import com.ggoulart.doodle.meeting.application.MeetingAlreadyExistsException;
 import com.ggoulart.doodle.meeting.application.SlotNotFoundException;
 import com.ggoulart.doodle.meeting.application.SlotNotFreeException;
@@ -21,6 +23,7 @@ import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +47,9 @@ class MeetingControllerTest {
 
     @MockitoBean
     private DeleteMeetingUseCase deleteMeetingUseCase;
+
+    @MockitoBean
+    private GetMeetingUseCase getMeetingUseCase;
 
     private BookSlotRequest sampleRequest() {
         return new BookSlotRequest("Planning", "Sprint planning", List.of("ada@example.com"));
@@ -119,5 +125,26 @@ class MeetingControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(deleteMeetingUseCase).deleteMeeting(id);
+    }
+
+    @Test
+    void getMeetingReturnsMeetingWhenFound() throws Exception {
+        Meeting meeting = new Meeting(UUID.randomUUID(), UUID.randomUUID(), "Planning", "Sprint planning", List.of("ada@example.com"));
+        when(getMeetingUseCase.getMeeting(meeting.id())).thenReturn(Optional.of(meeting));
+
+        mockMvc.perform(get("/meetings/{id}", meeting.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(meeting.id().toString()))
+                .andExpect(jsonPath("$.title").value("Planning"))
+                .andExpect(jsonPath("$.participants[0]").value("ada@example.com"));
+    }
+
+    @Test
+    void getMeetingReturnsNotFoundWhenMissing() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(getMeetingUseCase.getMeeting(id)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/meetings/{id}", id))
+                .andExpect(status().isNotFound());
     }
 }

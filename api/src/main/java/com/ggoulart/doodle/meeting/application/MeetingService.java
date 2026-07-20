@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-class MeetingService implements BookSlotUseCase, DeleteMeetingUseCase {
+class MeetingService implements BookSlotUseCase, DeleteMeetingUseCase, GetMeetingUseCase {
 
     private final MeetingRepository meetingRepository;
     private final GetSlotUseCase getSlotUseCase;
@@ -53,5 +53,11 @@ class MeetingService implements BookSlotUseCase, DeleteMeetingUseCase {
 
         meetingRepository.deleteById(id);
         updateSlotUseCase.updateSlot(new UpdateSlotCommand(meeting.get().slotId(), null, null, SlotStatus.FREE));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Optional<Meeting> getMeeting(UUID id) {
+        return meetingRepository.findById(id);
     }
 }

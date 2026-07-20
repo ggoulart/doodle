@@ -129,4 +129,26 @@ class MeetingServiceTest {
         verify(meetingRepository, never()).deleteById(any());
         verify(updateSlotUseCase, never()).updateSlot(any());
     }
+
+    @Test
+    void getMeetingReturnsMeetingWhenFound() {
+        MeetingService service = new MeetingService(meetingRepository, getSlotUseCase, updateSlotUseCase);
+        Meeting meeting = new Meeting(UUID.randomUUID(), UUID.randomUUID(), "Planning", null, List.of());
+        when(meetingRepository.findById(meeting.id())).thenReturn(Optional.of(meeting));
+
+        Optional<Meeting> result = service.getMeeting(meeting.id());
+
+        assertThat(result).contains(meeting);
+    }
+
+    @Test
+    void getMeetingReturnsEmptyWhenMissing() {
+        MeetingService service = new MeetingService(meetingRepository, getSlotUseCase, updateSlotUseCase);
+        UUID id = UUID.randomUUID();
+        when(meetingRepository.findById(id)).thenReturn(Optional.empty());
+
+        Optional<Meeting> result = service.getMeeting(id);
+
+        assertThat(result).isEmpty();
+    }
 }
