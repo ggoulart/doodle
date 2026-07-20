@@ -3,6 +3,8 @@ package com.ggoulart.doodle.meeting.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ggoulart.doodle.meeting.domain.Meeting;
@@ -102,5 +104,29 @@ class MeetingServiceTest {
         BookSlotResult result = service.bookSlot(command);
 
         assertThat(result.meeting().title()).isEqualTo("(No title)");
+    }
+
+    @Test
+    void deleteMeetingDeletesMeetingAndFreesSlot() {
+        MeetingService service = new MeetingService(meetingRepository, getSlotUseCase, updateSlotUseCase);
+        Meeting meeting = new Meeting(UUID.randomUUID(), UUID.randomUUID(), "Planning", null, List.of());
+        when(meetingRepository.findById(meeting.id())).thenReturn(Optional.of(meeting));
+
+        service.deleteMeeting(meeting.id());
+
+        verify(meetingRepository).deleteById(meeting.id());
+        verify(updateSlotUseCase).updateSlot(new UpdateSlotCommand(meeting.slotId(), null, null, SlotStatus.FREE));
+    }
+
+    @Test
+    void deleteMeetingIsNoOpWhenMeetingDoesNotExist() {
+        MeetingService service = new MeetingService(meetingRepository, getSlotUseCase, updateSlotUseCase);
+        UUID id = UUID.randomUUID();
+        when(meetingRepository.findById(id)).thenReturn(Optional.empty());
+
+        service.deleteMeeting(id);
+
+        verify(meetingRepository, never()).deleteById(any());
+        verify(updateSlotUseCase, never()).updateSlot(any());
     }
 }

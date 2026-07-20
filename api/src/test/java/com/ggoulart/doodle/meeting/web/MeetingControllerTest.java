@@ -1,7 +1,9 @@
 package com.ggoulart.doodle.meeting.web;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.ggoulart.doodle.meeting.application.BookSlotCommand;
 import com.ggoulart.doodle.meeting.application.BookSlotResult;
 import com.ggoulart.doodle.meeting.application.BookSlotUseCase;
+import com.ggoulart.doodle.meeting.application.DeleteMeetingUseCase;
 import com.ggoulart.doodle.meeting.application.MeetingAlreadyExistsException;
 import com.ggoulart.doodle.meeting.application.SlotNotFoundException;
 import com.ggoulart.doodle.meeting.application.SlotNotFreeException;
@@ -38,6 +41,9 @@ class MeetingControllerTest {
 
     @MockitoBean
     private BookSlotUseCase bookSlotUseCase;
+
+    @MockitoBean
+    private DeleteMeetingUseCase deleteMeetingUseCase;
 
     private BookSlotRequest sampleRequest() {
         return new BookSlotRequest("Planning", "Sprint planning", List.of("ada@example.com"));
@@ -103,5 +109,15 @@ class MeetingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleRequest())))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteMeetingReturnsNoContent() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete("/meetings/{id}", id))
+                .andExpect(status().isNoContent());
+
+        verify(deleteMeetingUseCase).deleteMeeting(id);
     }
 }

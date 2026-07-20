@@ -5,8 +5,11 @@ import com.ggoulart.doodle.meeting.application.MeetingRepository;
 import com.ggoulart.doodle.meeting.domain.InvalidParticipantException;
 import com.ggoulart.doodle.meeting.domain.Meeting;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -36,6 +39,20 @@ class JpaMeetingRepository implements MeetingRepository {
                 throw new InvalidParticipantException("participants must not contain duplicates");
             }
             throw ex;
+        }
+    }
+
+    @Override
+    public Optional<Meeting> findById(UUID id) {
+        return meetingJpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        try {
+            meetingJpaRepository.deleteById(id);
+        } catch (EmptyResultDataAccessException ignored) {
+            // already gone - deleting a nonexistent meeting is a no-op, not an error
         }
     }
 

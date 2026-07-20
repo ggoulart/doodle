@@ -6,12 +6,13 @@ import com.ggoulart.doodle.slot.application.UpdateSlotCommand;
 import com.ggoulart.doodle.slot.application.UpdateSlotUseCase;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-class MeetingService implements BookSlotUseCase {
+class MeetingService implements BookSlotUseCase, DeleteMeetingUseCase {
 
     private final MeetingRepository meetingRepository;
     private final GetSlotUseCase getSlotUseCase;
@@ -40,5 +41,17 @@ class MeetingService implements BookSlotUseCase {
         Slot updatedSlot = updateSlotUseCase.updateSlot(new UpdateSlotCommand(slotId, null, null, SlotStatus.BUSY));
 
         return new BookSlotResult(savedMeeting, updatedSlot);
+    }
+
+    @Transactional
+    @Override
+    public void deleteMeeting(UUID id) {
+        Optional<Meeting> meeting = meetingRepository.findById(id);
+        if (meeting.isEmpty()) {
+            return;
+        }
+
+        meetingRepository.deleteById(id);
+        updateSlotUseCase.updateSlot(new UpdateSlotCommand(meeting.get().slotId(), null, null, SlotStatus.FREE));
     }
 }

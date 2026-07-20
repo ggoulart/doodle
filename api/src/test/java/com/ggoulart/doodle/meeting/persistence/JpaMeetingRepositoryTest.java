@@ -1,8 +1,10 @@
 package com.ggoulart.doodle.meeting.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +13,7 @@ import com.ggoulart.doodle.meeting.domain.InvalidParticipantException;
 import com.ggoulart.doodle.meeting.domain.Meeting;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 @ExtendWith(MockitoExtension.class)
 class JpaMeetingRepositoryTest {
@@ -76,6 +80,49 @@ class JpaMeetingRepositoryTest {
         when(meetingJpaRepository.saveAndFlush(any(MeetingEntity.class))).thenThrow(exception);
 
         assertThatThrownBy(() -> repository.save(meeting)).isSameAs(exception);
+    }
+
+    @Test
+    void findByIdMapsEntityToDomainWhenPresent() {
+        JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
+        UUID id = UUID.randomUUID();
+        UUID slotId = UUID.randomUUID();
+        MeetingEntity entity = new MeetingEntity(id, slotId, "Planning", null, List.of());
+        when(meetingJpaRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        Optional<Meeting> found = repository.findById(id);
+
+        assertThat(found).contains(new Meeting(id, slotId, "Planning", null, List.of()));
+    }
+
+    @Test
+    void findByIdReturnsEmptyWhenMissing() {
+        JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
+        UUID id = UUID.randomUUID();
+        when(meetingJpaRepository.findById(id)).thenReturn(Optional.empty());
+
+        Optional<Meeting> found = repository.findById(id);
+
+        assertThat(found).isEmpty();
+    }
+
+    @Test
+    void deleteByIdDelegatesToJpaRepository() {
+        JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
+        UUID id = UUID.randomUUID();
+
+        repository.deleteById(id);
+
+        verify(meetingJpaRepository).deleteById(id);
+    }
+
+    @Test
+    void deleteByIdIsNoOpWhenMeetingDoesNotExist() {
+        JpaMeetingRepository repository = new JpaMeetingRepository(meetingJpaRepository);
+        UUID id = UUID.randomUUID();
+        doThrow(new EmptyResultDataAccessException(1)).when(meetingJpaRepository).deleteById(id);
+
+        assertThatCode(() -> repository.deleteById(id)).doesNotThrowAnyException();
     }
 
     private DataIntegrityViolationException wrapConstraintViolation(String constraintName) {
