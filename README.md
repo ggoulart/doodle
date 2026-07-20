@@ -1,3 +1,4 @@
+[![CI](https://github.com/ggoulart/doodle/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ggoulart/doodle/actions/workflows/build.yml)
 
 ---
 Gustavo Goulart - Doodle
