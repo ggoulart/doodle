@@ -60,6 +60,10 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
         Slot existing = slotRepository.findById(command.id())
                 .orElseThrow(() -> new SlotNotFoundException(command.id()));
 
+        if (meetingRepository.existsBySlotId(command.id())) {
+            throw new SlotHasMeetingException(command.id());
+        }
+
         Instant startTime = command.startTime() != null ? command.startTime() : existing.startTime();
         Instant endTime = command.endTime() != null ? command.endTime() : existing.endTime();
         SlotStatus status = command.status() != null ? command.status() : existing.status();

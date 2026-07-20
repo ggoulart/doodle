@@ -162,6 +162,24 @@ class SlotServiceTest {
     }
 
     @Test
+    void updateSlotThrowsWhenSlotHasMeeting() {
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        Slot existing = new Slot(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Instant.parse("2026-07-20T10:00:00Z"),
+                Instant.parse("2026-07-20T10:30:00Z"),
+                SlotStatus.BUSY);
+        UpdateSlotCommand command = new UpdateSlotCommand(existing.id(), null, null, SlotStatus.FREE);
+        when(slotRepository.findById(existing.id())).thenReturn(Optional.of(existing));
+        when(meetingRepository.existsBySlotId(existing.id())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.updateSlot(command)).isInstanceOf(SlotHasMeetingException.class);
+
+        verify(slotRepository, never()).save(any());
+    }
+
+    @Test
     void updateSlotThrowsWhenResultingTimeRangeIsInvalid() {
         SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
         Slot existing = new Slot(

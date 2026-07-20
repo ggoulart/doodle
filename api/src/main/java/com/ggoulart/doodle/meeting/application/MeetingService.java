@@ -34,11 +34,11 @@ class MeetingService implements BookSlotUseCase, DeleteMeetingUseCase, GetMeetin
             throw new SlotNotFreeException(slotId);
         }
 
+        Slot updatedSlot = updateSlotUseCase.updateSlot(new UpdateSlotCommand(slotId, null, null, SlotStatus.BUSY));
+
         Meeting meeting = new Meeting(
                 UUID.randomUUID(), slotId, command.title(), command.description(), command.participants());
         Meeting savedMeeting = meetingRepository.save(meeting);
-
-        Slot updatedSlot = updateSlotUseCase.updateSlot(new UpdateSlotCommand(slotId, null, null, SlotStatus.BUSY));
 
         return new BookSlotResult(savedMeeting, updatedSlot);
     }
