@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.ggoulart.doodle.calendar.application.GetCalendarUseCase;
 import com.ggoulart.doodle.calendar.domain.Calendar;
-import com.ggoulart.doodle.meeting.application.MeetingRepository;
+import com.ggoulart.doodle.meeting.application.SlotHasMeetingUseCase;
 import com.ggoulart.doodle.slot.domain.InvalidTimeRangeException;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
@@ -37,11 +37,11 @@ class SlotServiceTest {
     private GetCalendarUseCase getCalendarUseCase;
 
     @Mock
-    private MeetingRepository meetingRepository;
+    private SlotHasMeetingUseCase slotHasMeetingUseCase;
 
     @Test
     void createSlotSavesSlotWithCalendarResolvedFromUser() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID userId = UUID.randomUUID();
         Calendar calendar = new Calendar(UUID.randomUUID(), userId);
         Instant start = Instant.parse("2026-07-20T10:00:00Z");
@@ -63,7 +63,7 @@ class SlotServiceTest {
 
     @Test
     void createSlotThrowsWhenUserDoesNotExist() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID userId = UUID.randomUUID();
         CreateSlotCommand command = new CreateSlotCommand(
                 userId, Instant.parse("2026-07-20T10:00:00Z"), Instant.parse("2026-07-20T10:30:00Z"), SlotStatus.FREE);
@@ -74,7 +74,7 @@ class SlotServiceTest {
 
     @Test
     void createSlotThrowsWhenUserHasNoCalendar() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID userId = UUID.randomUUID();
         CreateSlotCommand command = new CreateSlotCommand(
                 userId, Instant.parse("2026-07-20T10:00:00Z"), Instant.parse("2026-07-20T10:30:00Z"), SlotStatus.FREE);
@@ -86,7 +86,7 @@ class SlotServiceTest {
 
     @Test
     void deleteSlotDelegatesToRepository() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID id = UUID.randomUUID();
 
         service.deleteSlot(id);
@@ -96,9 +96,9 @@ class SlotServiceTest {
 
     @Test
     void deleteSlotThrowsWhenSlotHasMeeting() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID id = UUID.randomUUID();
-        when(meetingRepository.existsBySlotId(id)).thenReturn(true);
+        when(slotHasMeetingUseCase.hasMeeting(id)).thenReturn(true);
 
         assertThatThrownBy(() -> service.deleteSlot(id)).isInstanceOf(SlotHasMeetingException.class);
 
@@ -107,7 +107,7 @@ class SlotServiceTest {
 
     @Test
     void updateSlotAppliesAllProvidedFields() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         Slot existing = new Slot(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -132,7 +132,7 @@ class SlotServiceTest {
 
     @Test
     void updateSlotKeepsUnprovidedFieldsUnchanged() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         Slot existing = new Slot(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -153,7 +153,7 @@ class SlotServiceTest {
 
     @Test
     void updateSlotThrowsWhenSlotDoesNotExist() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID id = UUID.randomUUID();
         UpdateSlotCommand command = new UpdateSlotCommand(id, null, null, SlotStatus.BUSY);
         when(slotRepository.findById(id)).thenReturn(Optional.empty());
@@ -163,7 +163,7 @@ class SlotServiceTest {
 
     @Test
     void updateSlotThrowsWhenSlotHasMeeting() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         Slot existing = new Slot(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -172,7 +172,7 @@ class SlotServiceTest {
                 SlotStatus.BUSY);
         UpdateSlotCommand command = new UpdateSlotCommand(existing.id(), null, null, SlotStatus.FREE);
         when(slotRepository.findById(existing.id())).thenReturn(Optional.of(existing));
-        when(meetingRepository.existsBySlotId(existing.id())).thenReturn(true);
+        when(slotHasMeetingUseCase.hasMeeting(existing.id())).thenReturn(true);
 
         assertThatThrownBy(() -> service.updateSlot(command)).isInstanceOf(SlotHasMeetingException.class);
 
@@ -181,7 +181,7 @@ class SlotServiceTest {
 
     @Test
     void updateSlotThrowsWhenResultingTimeRangeIsInvalid() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         Slot existing = new Slot(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -196,7 +196,7 @@ class SlotServiceTest {
 
     @Test
     void querySlotsDelegatesToRepositoryWithResolvedCalendarAndNoStatusFilter() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID userId = UUID.randomUUID();
         Calendar calendar = new Calendar(UUID.randomUUID(), userId);
         Instant from = Instant.parse("2026-07-20T00:00:00Z");
@@ -216,7 +216,7 @@ class SlotServiceTest {
 
     @Test
     void querySlotsForwardsStatusFilterToRepository() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID userId = UUID.randomUUID();
         Calendar calendar = new Calendar(UUID.randomUUID(), userId);
         Instant from = Instant.parse("2026-07-20T00:00:00Z");
@@ -235,7 +235,7 @@ class SlotServiceTest {
 
     @Test
     void querySlotsThrowsWhenUserDoesNotExist() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID userId = UUID.randomUUID();
         QuerySlotsCommand command = new QuerySlotsCommand(
                 userId, Instant.parse("2026-07-20T00:00:00Z"), Instant.parse("2026-07-21T00:00:00Z"), null);
@@ -246,7 +246,7 @@ class SlotServiceTest {
 
     @Test
     void querySlotsThrowsWhenUserHasNoCalendar() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         UUID userId = UUID.randomUUID();
         QuerySlotsCommand command = new QuerySlotsCommand(
                 userId, Instant.parse("2026-07-20T00:00:00Z"), Instant.parse("2026-07-21T00:00:00Z"), null);
@@ -258,7 +258,7 @@ class SlotServiceTest {
 
     @Test
     void getSlotDelegatesToRepository() {
-        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, meetingRepository);
+        SlotService service = new SlotService(slotRepository, getUserUseCase, getCalendarUseCase, slotHasMeetingUseCase);
         Slot slot = new Slot(
                 UUID.randomUUID(),
                 UUID.randomUUID(),

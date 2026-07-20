@@ -33,7 +33,7 @@ The codebase is split into four bounded contexts — `user`, `calendar`, `slot`,
 
 `calendar` intentionally has no `web` package — the spec calls for "calendar" to exist only in the domain, not as an exposed API concept. A user's calendar is created automatically as part of `POST /users`, and other packages resolve a user's calendar internally through `calendar`'s ports (never through an HTTP call).
 
-Cross-context calls go through the target context's own `application` ports directly (e.g. `slot` depends on `user.application.GetUserUseCase` and `calendar.application.GetCalendarUseCase`; `meeting` depends on `slot.application.GetSlotUseCase`/`UpdateSlotUseCase`) — no shared database access or reaching into another package's internals.
+Cross-context calls go through the target context's own `application` ports directly (e.g. `slot` depends on `user.application.GetUserUseCase` and `calendar.application.GetCalendarUseCase`; `meeting` depends on `slot.application.GetSlotUseCase`/`UpdateSlotUseCase`) — no shared database access or reaching into another package's internals. This does mean `slot` and `meeting` depend on each other (`slot` needs to know whether a slot is already booked before letting it be mutated; `meeting` needs to read/update the slot it's booking). To keep that coupling as narrow as possible, `slot` depends on a single-method `meeting.application.SlotHasMeetingUseCase` port rather than the full `MeetingRepository` — implemented by its own small `MeetingLookupService`, kept separate from `MeetingService` so the two contexts' beans don't form a circular constructor-injection dependency.
 
 ## API
 
