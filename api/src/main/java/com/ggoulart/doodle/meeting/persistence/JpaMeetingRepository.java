@@ -48,6 +48,11 @@ class JpaMeetingRepository implements MeetingRepository {
     }
 
     @Override
+    public boolean existsBySlotId(UUID slotId) {
+        return meetingJpaRepository.existsBySlotId(slotId);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         try {
             meetingJpaRepository.deleteById(id);

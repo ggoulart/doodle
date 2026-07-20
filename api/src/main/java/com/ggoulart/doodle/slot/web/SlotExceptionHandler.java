@@ -1,6 +1,7 @@
 package com.ggoulart.doodle.slot.web;
 
 import com.ggoulart.doodle.slot.application.CalendarNotFoundException;
+import com.ggoulart.doodle.slot.application.SlotHasMeetingException;
 import com.ggoulart.doodle.slot.application.SlotNotFoundException;
 import com.ggoulart.doodle.slot.application.UserNotFoundException;
 import com.ggoulart.doodle.slot.domain.InvalidTimeRangeException;
@@ -30,5 +31,10 @@ class SlotExceptionHandler {
     @ExceptionHandler(SlotNotFoundException.class)
     ResponseEntity<String> handleSlotNotFound(SlotNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(SlotHasMeetingException.class)
+    ResponseEntity<String> handleSlotHasMeeting(SlotHasMeetingException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 }

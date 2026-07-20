@@ -10,5 +10,7 @@ public interface MeetingRepository {
 
     Optional<Meeting> findById(UUID id);
 
+    boolean existsBySlotId(UUID slotId);
+
     void deleteById(UUID id);
 }

@@ -2,13 +2,16 @@ package com.ggoulart.doodle.slot.application;
 
 import com.ggoulart.doodle.calendar.application.GetCalendarUseCase;
 import com.ggoulart.doodle.calendar.domain.Calendar;
+import com.ggoulart.doodle.meeting.application.MeetingRepository;
 import com.ggoulart.doodle.slot.domain.Slot;
 import com.ggoulart.doodle.slot.domain.SlotStatus;
 import com.ggoulart.doodle.user.application.GetUserUseCase;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,11 +20,17 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
     private final SlotRepository slotRepository;
     private final GetUserUseCase getUserUseCase;
     private final GetCalendarUseCase getCalendarUseCase;
+    private final MeetingRepository meetingRepository;
 
-    SlotService(SlotRepository slotRepository, GetUserUseCase getUserUseCase, GetCalendarUseCase getCalendarUseCase) {
+    SlotService(
+            SlotRepository slotRepository,
+            GetUserUseCase getUserUseCase,
+            GetCalendarUseCase getCalendarUseCase,
+            MeetingRepository meetingRepository) {
         this.slotRepository = slotRepository;
         this.getUserUseCase = getUserUseCase;
         this.getCalendarUseCase = getCalendarUseCase;
+        this.meetingRepository = meetingRepository;
     }
 
     @Override
@@ -40,6 +49,9 @@ class SlotService implements CreateSlotUseCase, DeleteSlotUseCase, UpdateSlotUse
 
     @Override
     public void deleteSlot(UUID id) {
+        if (meetingRepository.existsBySlotId(id)) {
+            throw new SlotHasMeetingException(id);
+        }
         slotRepository.deleteById(id);
     }
 
