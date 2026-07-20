@@ -6,12 +6,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "slots")
+@Table(
+        name = "slots",
+        indexes = @Index(name = "idx_slots_calendar_id_start_time_end_time", columnList = "calendar_id, start_time, end_time"))
 class SlotEntity {
 
     @Id
