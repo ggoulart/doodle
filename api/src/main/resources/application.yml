@@ -1,4 +1,6 @@
 spring:
+  application:
+    name: doodle-api
   datasource:
     url: jdbc:postgresql://localhost:5432/doodle
     username: doodle
@@ -7,3 +9,18 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update
+  boot:
+    admin:
+      client:
+        url: http://localhost:8081
+        instance:
+          service-base-url: http://localhost:8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

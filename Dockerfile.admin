@@ -6,10 +6,10 @@ COPY gradlew settings.gradle ./
 COPY gradle gradle
 COPY api api
 COPY admin admin
-RUN ./gradlew :api:bootJar --no-daemon
+RUN ./gradlew :admin:bootJar --no-daemon
 
 FROM eclipse-temurin:26-jre
 WORKDIR /app
-COPY --from=build /workspace/api/build/libs/api.jar doodle-api.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "doodle-api.jar"]
+COPY --from=build /workspace/admin/build/libs/admin.jar doodle-admin.jar
+EXPOSE 8081
+ENTRYPOINT ["java", "-jar", "doodle-admin.jar"]

@@ -8,9 +8,21 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/doodle
       SPRING_DATASOURCE_USERNAME: doodle
       SPRING_DATASOURCE_PASSWORD: doodle
+      SPRING_BOOT_ADMIN_CLIENT_URL: http://admin:8081
+      SPRING_BOOT_ADMIN_CLIENT_INSTANCE_SERVICE-BASE-URL: http://app:8080
     depends_on:
       postgres:
         condition: service_healthy
+      admin:
+        condition: service_started
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    container_name: doodle-admin
+    ports:
+      - "8081:8081"
 
   postgres:
     image: postgres:17-alpine

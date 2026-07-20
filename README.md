@@ -11,7 +11,7 @@ A mini Doodle: a meeting scheduling API. Users have a personal calendar; calenda
 docker compose up --build
 ```
 
-This starts the API at `http://localhost:8080` and a Postgres database. Add `-d` to run detached, and `docker compose down` (or `docker compose down -v` to also drop the database volume) to stop.
+This starts the API at `http://localhost:8080`, a Postgres database, and a Spring Boot Admin server at `http://localhost:8081`. Add `-d` to run detached, and `docker compose down` (or `docker compose down -v` to also drop the database volume) to stop.
 
 ## Running the tests
 
@@ -38,6 +38,14 @@ Cross-context calls go through the target context's own `application` ports dire
 
 Once the app is running, see the Swagger UI at `http://localhost:8080/swagger-ui/index.html` for the full list of endpoints, request/response schemas, and status codes (raw spec at `/v3/api-docs`). It's kept in sync with the code via annotations rather than duplicated here. Timestamps throughout the API are ISO-8601 UTC instants (e.g. `"2026-07-20T10:00:00Z"`).
 
+## Monitoring
+
+The `api` module has Spring Boot Actuator, and registers itself with a Spring Boot Admin server (its own module, `admin/`, built from `Dockerfile.admin`) at `http://localhost:8081`. Open that URL to see the app's health, JVM/HTTP metrics, config properties, loggers, and more, all live.
+
+`/actuator/health` is a real check, not decoration: since the app has a Postgres `DataSource`, Boot auto-adds a DB health indicator, so the endpoint reports `DOWN` (with the actual JDBC error) if Postgres becomes unreachable, and recovers to `UP` once it's back — confirmed by stopping Postgres and watching it happen live. It's kept alongside the original hand-written `GET /health` (always `200`, no dependencies), giving both a cheap liveness ping and a real dependency-aware readiness check.
+
+Neither the Actuator endpoints nor the Admin server have any authentication — same already-acknowledged tradeoff as Swagger below, not a new one. No pre-built Docker image for Spring Boot Admin covers the 4.x line this project's Spring Boot 4.1 needs (the community image on Docker Hub tops out at 3.4.1), so the `admin` module is built from source the same way `api` is.
+
 ## Known limitations
 
 Deliberate tradeoffs for this stage of the project, not oversights:
@@ -46,4 +54,3 @@ Deliberate tradeoffs for this stage of the project, not oversights:
 - **Uniqueness races are fully closed, not just backed by a constraint.** `users.email`, `calendars.user_id`, `meetings.slot_id`, and `(meeting_id, participant)` on `meeting_participants` are all enforced by a DB-level `UNIQUE` constraint rather than a check-then-act pre-check, so two concurrent requests can no longer both succeed. Each persistence adapter (`JpaUserRepository`, `JpaCalendarRepository`, `JpaMeetingRepository`) catches the resulting `DataIntegrityViolationException`, confirms — by checking the actual violated constraint's name — that it's the constraint it expects before translating it into the matching clean 400/409, and rethrows anything else untouched. One gap: `CalendarAlreadyExistsException` has no HTTP mapping, since `calendar` deliberately has no `web` layer of its own; if it's ever thrown (in practice, only from a UUID collision on a just-generated id — effectively unreachable) it would surface as an unhandled 500 during `POST /users`.
 - **Deleting a slot with a booked meeting doesn't clean up the meeting.** `DELETE /slots/{id}` doesn't check for an existing meeting, so it can leave a `meetings` row pointing at a slot that no longer exists.
 - **Schema is managed by Hibernate (`ddl-auto: update`)**, not a migration tool like Flyway — fine for this stage, but has no version history and won't safely handle destructive schema changes.
-- **No metrics/observability** beyond the plain `/health` check (which doesn't verify DB connectivity).

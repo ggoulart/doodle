@@ -12,3 +12,4 @@ plugins {
 
 rootProject.name = 'doodle'
 include('api')
+include('admin')
